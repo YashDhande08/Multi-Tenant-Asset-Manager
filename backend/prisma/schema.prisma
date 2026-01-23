@@ -1,0 +1,232 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Address {
+  id         Int      @id @default(autoincrement())
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  country    String   @default("India")
+  postalCode String?  @map("postal_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenants Tenant[]
+
+  @@map("addresses")
+}
+
+model Tenant {
+  id          Int      @id
+  name        String
+  email       String?
+  phoneNo     String?   @map("phone_no")
+  addressId   Int?      @map("address_id")
+  baseCurrency String   @default("INR") @map("base_currency")
+  logoUrl     String?   @map("logo_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   Int?      @map("created_by")
+  updatedBy   Int?      @map("updated_by")
+
+  address     Address?  @relation(fields: [addressId], references: [id])
+  users       User[]
+  assets      Asset[]
+  liabilities Liability[]
+  activityLogs UserActivityLog[]
+  networthSnapshots NetworthSnapshot[]
+
+  @@map("tenants")
+}
+
+model Role {
+  id        Int    @id
+  name      String
+
+  rolePermissions RolePermission[]
+  users     User[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id        Int    @id
+  name      String
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           Int    @id
+  roleId       Int    @map("role_id")
+  permissionId Int    @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id          Int      @id
+  tenantId    Int      @map("tenant_id")
+  name        String?
+  email       String
+  passwordHash String  @map("password_hash")
+  isActive    Boolean  @default(true) @map("is_active")
+  roleId      Int?     @map("role_id")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role       Role?     @relation(fields: [roleId], references: [id])
+  assets     Asset[]
+  liabilities Liability[]
+  activityLogs UserActivityLog[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@index([email])
+  @@map("users")
+}
+
+model UserActivityLog {
+  id          BigInt   @id @default(autoincrement())
+  tenantId    Int?     @map("tenant_id")
+  userId      Int?     @map("user_id")
+  action      String
+  entityType  String?  @map("entity_type")
+  entityId    Int?     @map("entity_id")
+  oldData     Json?    @map("old_data")
+  newData     Json?    @map("new_data")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("user_activity_logs")
+}
+
+model AssetType {
+  id        Int    @id
+  name      String
+
+  assets    Asset[]
+
+  @@map("asset_types")
+}
+
+model Asset {
+  id             Int      @id
+  tenantId       Int      @map("tenant_id")
+  userId         Int?     @map("user_id")
+  assetTypeId    Int      @map("asset_type_id")
+  name           String
+  description    String?
+  currency       String   @default("INR")
+  acquisitionDate DateTime? @map("acquisition_date")
+  isDeleted      Boolean  @default(false) @map("is_deleted")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assetType      AssetType @relation(fields: [assetTypeId], references: [id])
+  valueHistory   AssetValueHistory[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([assetTypeId])
+  @@map("assets")
+}
+
+model AssetValueHistory {
+  id          Int      @id
+  tenantId    Int      @map("tenant_id")
+  assetId      Int      @map("asset_id")
+  valueDate    DateTime @map("value_date")
+  valueAmount  Decimal  @map("value_amount") @db.Decimal(18, 2)
+  source      String?
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([assetId])
+  @@index([valueDate])
+  @@map("asset_value_history")
+}
+
+model LiabilityType {
+  id        Int    @id
+  name      String
+
+  liabilities Liability[]
+
+  @@map("liability_types")
+}
+
+model Liability {
+  id              Int      @id
+  tenantId        Int      @map("tenant_id")
+  ownerUserId     Int?     @map("owner_user_id")
+  liabilityTypeId Int      @map("liability_type_id")
+  name            String
+  description     String?
+  currentValue    Decimal  @map("current_value") @db.Decimal(18, 2)
+  interestRate    Decimal? @map("interest_rate") @db.Decimal(5, 2)
+  monthlyPayment  Decimal? @map("monthly_payment") @db.Decimal(18, 2)
+  currency        String   @default("INR")
+  acquisitionDate DateTime? @map("acquisition_date")
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerUser      User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  liabilityType  LiabilityType @relation(fields: [liabilityTypeId], references: [id])
+
+  @@index([tenantId])
+  @@index([ownerUserId])
+  @@index([liabilityTypeId])
+  @@map("liabilities")
+}
+
+model NetworthSnapshot {
+  id              Int      @id
+  tenantId        Int      @map("tenant_id")
+  totalAssets     Decimal  @map("total_assets") @db.Decimal(18, 2)
+  totalLiabilities Decimal @map("total_liabilities") @db.Decimal(18, 2)
+  netWorth        Decimal  @map("net_worth") @db.Decimal(18, 2)
+  period          String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("networth_snapshots")
+}
