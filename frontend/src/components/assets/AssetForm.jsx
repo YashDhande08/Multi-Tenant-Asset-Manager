@@ -12,8 +12,6 @@ const AssetForm = ({ asset, onSubmit, onCancel }) => {
     acquisitionDate: '',
     valueAmount: '',
     valueDate: new Date().toISOString().split('T')[0],
-    source: '',
-    notes: '',
   });
 
   const [assetTypes, setAssetTypes] = useState([]);
@@ -38,8 +36,6 @@ const AssetForm = ({ asset, onSubmit, onCancel }) => {
         valueDate: latestValue
           ? new Date(latestValue.valueDate).toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0],
-        source: latestValue?.source || '',
-        notes: latestValue?.notes || '',
       });
     }
   }, [asset]);
@@ -163,24 +159,6 @@ const AssetForm = ({ asset, onSubmit, onCancel }) => {
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
           placeholder="Additional details about this asset"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="Source"
-          name="source"
-          value={formData.source}
-          onChange={handleChange}
-          placeholder="e.g., Bank statement, Broker report"
-        />
-
-        <Input
-          label="Notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Any additional notes"
         />
       </div>
 

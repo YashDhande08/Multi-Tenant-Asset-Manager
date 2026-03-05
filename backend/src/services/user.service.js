@@ -28,20 +28,25 @@ const getUsers = async (tenantId, userId, userRoleId) => {
         },
       },
     },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      isActive: true,
-      roleId: true,
-      createdAt: true,
-      updatedAt: true,
-      role: true,
-    },
     orderBy: { createdAt: 'desc' },
   });
 
-  return users;
+  // Map to explicit shape so frontend only gets the fields it uses
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isActive: user.isActive,
+    roleId: user.roleId,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    role: user.role
+      ? {
+          id: user.role.id,
+          name: user.role.name,
+        }
+      : null,
+  }));
 };
 
 /**
@@ -69,23 +74,27 @@ const getUserById = async (id, tenantId, userId, userRoleId) => {
         },
       },
     },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      isActive: true,
-      roleId: true,
-      createdAt: true,
-      updatedAt: true,
-      role: true,
-    },
   });
 
   if (!user) {
     throw new NotFoundError('User not found');
   }
 
-  return user;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isActive: user.isActive,
+    roleId: user.roleId,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+    role: user.role
+      ? {
+          id: user.role.id,
+          name: user.role.name,
+        }
+      : null,
+  };
 };
 
 /**
@@ -136,18 +145,22 @@ const createUser = async (data, tenantId, creatorId) => {
     include: {
       role: true,
     },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      isActive: true,
-      roleId: true,
-      createdAt: true,
-      role: true,
-    },
   });
 
-  return user;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    isActive: user.isActive,
+    roleId: user.roleId,
+    createdAt: user.createdAt,
+    role: user.role
+      ? {
+          id: user.role.id,
+          name: user.role.name,
+        }
+      : null,
+  };
 };
 
 /**
@@ -167,20 +180,26 @@ const updateUser = async (id, data, tenantId, userId, userRoleId) => {
     const updateData = {
       name: data.name || user.name,
     };
-    return await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: parseInt(id) },
       data: updateData,
       include: { role: true },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isActive: true,
-        roleId: true,
-        updatedAt: true,
-        role: true,
-      },
     });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      isActive: updated.isActive,
+      roleId: updated.roleId,
+      updatedAt: updated.updatedAt,
+      role: updated.role
+        ? {
+            id: updated.role.id,
+            name: updated.role.name,
+          }
+        : null,
+    };
   }
 
   // Tenant Admins can update all fields
@@ -198,23 +217,27 @@ const updateUser = async (id, data, tenantId, userId, userRoleId) => {
     where: { id: parseInt(id) },
     data: updateData,
     include: { role: true },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      isActive: true,
-      roleId: true,
-      updatedAt: true,
-      role: true,
-    },
   });
 
-  return updatedUser;
+  return {
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    isActive: updatedUser.isActive,
+    roleId: updatedUser.roleId,
+    updatedAt: updatedUser.updatedAt,
+    role: updatedUser.role
+      ? {
+          id: updatedUser.role.id,
+          name: updatedUser.role.name,
+        }
+      : null,
+  };
 };
 
 /**
- * Soft delete a user (set isDeleted = true)
- * Only Tenant Admins can delete users
+ * Permanently delete a user from the database.
+ * Only Tenant Admins can delete users and they cannot delete themselves.
  */
 const deleteUser = async (id, tenantId, userId, userRoleId) => {
   if (userRoleId !== 1) {
@@ -224,14 +247,55 @@ const deleteUser = async (id, tenantId, userId, userRoleId) => {
   const user = await getUserById(id, tenantId, userId, userRoleId);
 
   // Don't allow deleting yourself
-  if (parseInt(id) === parseInt(userId)) {
+  if (parseInt(id, 10) === parseInt(userId, 10)) {
     throw new ForbiddenError('You cannot delete your own account');
   }
 
-  await prisma.user.update({
-    where: { id: parseInt(id) },
-    data: { isDeleted: true },
+  await prisma.user.delete({
+    where: { id: parseInt(id, 10) },
   });
+};
+
+/**
+ * Update a user's role within the same tenant.
+ * Only Tenant Admins can change roles and they cannot change their own role.
+ */
+const updateUserRole = async (id, newRoleId, tenantId, currentUserId, currentUserRoleId) => {
+  if (currentUserRoleId !== 1) {
+    throw new ForbiddenError('Only Tenant Admins can update user roles');
+  }
+
+  if (parseInt(id, 10) === parseInt(currentUserId, 10)) {
+    throw new ForbiddenError('You cannot change your own role');
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: parseInt(id, 10),
+      tenantId: parseInt(tenantId, 10),
+      isDeleted: false,
+    },
+  });
+
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      roleId: parseInt(newRoleId, 10),
+    },
+  });
+
+  return {
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    isActive: updatedUser.isActive,
+    roleId: updatedUser.roleId,
+    updatedAt: updatedUser.updatedAt,
+  };
 };
 
 module.exports = {
@@ -240,4 +304,5 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  updateUserRole,
 };

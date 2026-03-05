@@ -1,4 +1,5 @@
 const authService = require('../services/auth.service');
+const inviteService = require('../services/invite.service');
 
 const register = async (req, res, next) => {
   try {
@@ -57,10 +58,30 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
+const acceptInvite = async (req, res, next) => {
+  try {
+    const { token, password, name } = req.body;
+
+    const result = await inviteService.acceptInvite({
+      token,
+      password,
+      name,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   refreshToken,
+  acceptInvite,
 };
 

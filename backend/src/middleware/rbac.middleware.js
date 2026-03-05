@@ -58,4 +58,42 @@ const checkRole = (...allowedRoleIds) => {
   };
 };
 
-module.exports = { checkPermission, checkRole };
+/**
+ * Require one of the given high-level role names.
+ *
+ * Expected names (from SRS):
+ * - "TENANT_ADMIN"
+ * - "STANDARD_USER"
+ *
+ * We keep this middleware layered on top of the existing numeric role IDs
+ * to avoid changing the current DB schema or auth logic.
+ */
+const ROLE_NAME_TO_ID = {
+  TENANT_ADMIN: 1,
+  STANDARD_USER: 2,
+};
+
+const requireRole = (...allowedRoleNames) => {
+  const allowedRoleIds = allowedRoleNames
+    .map((name) => ROLE_NAME_TO_ID[name])
+    .filter((id) => typeof id === 'number');
+
+  return (req, res, next) => {
+    try {
+      if (!req.user || !req.user.roleId) {
+        // Return the exact 403 structure required by the SRS
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (!allowedRoleIds.includes(req.user.roleId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+module.exports = { checkPermission, checkRole, requireRole };

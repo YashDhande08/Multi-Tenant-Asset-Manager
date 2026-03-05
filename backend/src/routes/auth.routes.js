@@ -37,5 +37,18 @@ router.post(
 router.get('/profile', authenticate, authController.getProfile);
 router.post('/refresh', authController.refreshToken);
 
+router.post(
+  '/accept-invite',
+  [
+    body('token').notEmpty().withMessage('Invitation token is required'),
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long'),
+    body('name').optional().trim(),
+    validate,
+  ],
+  authController.acceptInvite
+);
+
 module.exports = router;
 

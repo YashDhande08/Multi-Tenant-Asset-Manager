@@ -2,6 +2,44 @@ const prisma = require('../config/database');
 const { NotFoundError, ForbiddenError } = require('../constants/errors');
 const activityLogService = require('./activityLog.service');
 
+// Supported FR asset types mapped to AssetType.name
+const SUPPORTED_ASSET_TYPES = ['Real Estate', 'Stocks', 'Crypto', 'Cash'];
+
+/**
+ * Resolve asset type to an internal assetTypeId.
+ * Accepts either:
+ * - assetTypeId (number/string id), or
+ * - type (string name like "Real Estate", "Stocks", etc.).
+ *
+ * This keeps the database schema using AssetType,
+ * while allowing the API/FR layer to work with a simple "type" enum.
+ */
+const resolveAssetTypeId = async ({ assetTypeId, type }) => {
+  if (assetTypeId !== undefined && assetTypeId !== null && assetTypeId !== '') {
+    return parseInt(assetTypeId);
+  }
+
+  if (!type) {
+    throw new Error('Asset type is required');
+  }
+
+  if (!SUPPORTED_ASSET_TYPES.includes(type)) {
+    throw new Error(
+      `Invalid asset type. Supported types: ${SUPPORTED_ASSET_TYPES.join(', ')}`
+    );
+  }
+
+  const assetType = await prisma.assetType.findFirst({
+    where: { name: type },
+  });
+
+  if (!assetType) {
+    throw new Error(`Asset type "${type}" is not configured in the system`);
+  }
+
+  return assetType.id;
+};
+
 /**
  * Get all assets for a tenant
  * Standard users can only see their own assets
@@ -38,11 +76,16 @@ const getAssets = async (tenantId, userId, userRoleId) => {
     orderBy: { createdAt: 'desc' },
   });
 
+  // Expose FR-aligned fields:
+  // - currentValue: latest value history amount
+  // - type: mapped from related AssetType.name
   return assets.map(asset => ({
     ...asset,
-    currentValue: asset.valueHistory && asset.valueHistory.length > 0
-      ? parseFloat(asset.valueHistory[0].valueAmount)
-      : 0,
+    type: asset.assetType?.name || null,
+    currentValue:
+      asset.valueHistory && asset.valueHistory.length > 0
+        ? parseFloat(asset.valueHistory[0].valueAmount)
+        : 0,
   }));
 };
 
@@ -82,7 +125,17 @@ const getAssetById = async (id, tenantId, userId, userRoleId) => {
     throw new NotFoundError('Asset not found');
   }
 
-  return asset;
+  // Attach FR-aligned helper fields for easier frontend consumption
+  const currentValue =
+    asset.valueHistory && asset.valueHistory.length > 0
+      ? parseFloat(asset.valueHistory[0].valueAmount)
+      : 0;
+
+  return {
+    ...asset,
+    type: asset.assetType?.name || null,
+    currentValue,
+  };
 };
 
 /**
@@ -92,15 +145,33 @@ const getAssetById = async (id, tenantId, userId, userRoleId) => {
 const createAsset = async (data, tenantId, userId) => {
   const {
     name,
+    // Support both FR-style "type" and internal "assetTypeId"
     assetTypeId,
+    type,
     description,
     currency,
     acquisitionDate,
+    // Support both "currentValue" (FR) and "valueAmount" (internal)
+    currentValue,
     valueAmount,
     valueDate,
-    source,
-    notes,
   } = data;
+
+  if (!name) {
+    throw new Error('name is required');
+  }
+
+  // Resolve type -> assetTypeId
+  const resolvedAssetTypeId = await resolveAssetTypeId({ assetTypeId, type });
+
+  const resolvedValueAmount =
+    valueAmount !== undefined && valueAmount !== null && valueAmount !== ''
+      ? valueAmount
+      : currentValue;
+
+  if (resolvedValueAmount === undefined || resolvedValueAmount === null || resolvedValueAmount === '') {
+    throw new Error('currentValue is required');
+  }
 
   // Generate unique asset ID
   const lastAsset = await prisma.asset.findFirst({
@@ -119,7 +190,7 @@ const createAsset = async (data, tenantId, userId) => {
       id: assetId,
       tenantId: parseInt(tenantId),
       userId: parseInt(userId),
-      assetTypeId: parseInt(assetTypeId),
+      assetTypeId: resolvedAssetTypeId,
       name,
       description: description || null,
       currency: currency || 'INR',
@@ -129,11 +200,8 @@ const createAsset = async (data, tenantId, userId) => {
         create: {
           id: historyId,
           tenantId: parseInt(tenantId),
-          assetId: assetId,
           valueDate: valueDate ? new Date(valueDate) : new Date(),
-          valueAmount: parseFloat(valueAmount),
-          source: source || null,
-          notes: notes || null,
+          valueAmount: parseFloat(resolvedValueAmount),
         },
       },
     },
@@ -152,10 +220,27 @@ const createAsset = async (data, tenantId, userId) => {
     'CREATE',
     'Asset',
     assetId,
-    { name: asset.name, assetType: asset.assetType.name, valueAmount }
+    null,
+    {
+      name: asset.name,
+      assetType: asset.assetType.name,
+      currentValue: parseFloat(resolvedValueAmount),
+    }
   );
 
-  return asset;
+  // Attach FR-aligned fields in response
+  const latestHistory =
+    asset.valueHistory && asset.valueHistory.length > 0
+      ? asset.valueHistory[0]
+      : null;
+
+  return {
+    ...asset,
+    type: asset.assetType?.name || null,
+    currentValue: latestHistory
+      ? parseFloat(latestHistory.valueAmount)
+      : parseFloat(resolvedValueAmount),
+  };
 };
 
 /**
@@ -165,12 +250,22 @@ const createAsset = async (data, tenantId, userId) => {
 const updateAsset = async (id, data, tenantId, userId, userRoleId) => {
   const asset = await getAssetById(id, tenantId, userId, userRoleId);
 
+  const resolvedAssetTypeId = data.assetTypeId || data.type
+    ? await resolveAssetTypeId({
+        assetTypeId: data.assetTypeId,
+        type: data.type,
+      })
+    : asset.assetTypeId;
+
   const updateData = {
-    name: data.name,
-    assetTypeId: data.assetTypeId ? parseInt(data.assetTypeId) : asset.assetTypeId,
-    description: data.description !== undefined ? data.description : asset.description,
+    name: data.name !== undefined ? data.name : asset.name,
+    assetTypeId: resolvedAssetTypeId,
+    description:
+      data.description !== undefined ? data.description : asset.description,
     currency: data.currency || asset.currency,
-    acquisitionDate: data.acquisitionDate ? new Date(data.acquisitionDate) : asset.acquisitionDate,
+    acquisitionDate: data.acquisitionDate
+      ? new Date(data.acquisitionDate)
+      : asset.acquisitionDate,
   };
 
   const updatedAsset = await prisma.asset.update({
@@ -185,7 +280,18 @@ const updateAsset = async (id, data, tenantId, userId, userRoleId) => {
   });
 
   // If value changed, create new history entry
-  if (data.valueAmount && parseFloat(data.valueAmount) !== parseFloat(asset.valueHistory[0]?.valueAmount || 0)) {
+  const newValueAmountRaw =
+    data.valueAmount !== undefined && data.valueAmount !== null && data.valueAmount !== ''
+      ? data.valueAmount
+      : data.currentValue;
+
+  if (
+    newValueAmountRaw !== undefined &&
+    newValueAmountRaw !== null &&
+    newValueAmountRaw !== '' &&
+    parseFloat(newValueAmountRaw) !==
+      parseFloat(asset.valueHistory[0]?.valueAmount || 0)
+  ) {
     const lastHistory = await prisma.assetValueHistory.findFirst({
       orderBy: { id: 'desc' },
     });
@@ -197,9 +303,7 @@ const updateAsset = async (id, data, tenantId, userId, userRoleId) => {
         tenantId: parseInt(tenantId),
         assetId: parseInt(id),
         valueDate: data.valueDate ? new Date(data.valueDate) : new Date(),
-        valueAmount: parseFloat(data.valueAmount),
-        source: data.source || null,
-        notes: data.notes || null,
+        valueAmount: parseFloat(newValueAmountRaw),
       },
     });
   }
@@ -210,10 +314,27 @@ const updateAsset = async (id, data, tenantId, userId, userRoleId) => {
     'UPDATE',
     'Asset',
     parseInt(id),
-    { changes: data }
+    {
+      name: asset.name,
+      previousType: asset.assetType?.name || null,
+    },
+    {
+      changes: data,
+    }
   );
 
-  return updatedAsset;
+  const latestHistory =
+    updatedAsset.valueHistory && updatedAsset.valueHistory.length > 0
+      ? updatedAsset.valueHistory[0]
+      : null;
+
+  return {
+    ...updatedAsset,
+    type: updatedAsset.assetType?.name || null,
+    currentValue: latestHistory
+      ? parseFloat(latestHistory.valueAmount)
+      : asset.currentValue || 0,
+  };
 };
 
 /**
@@ -233,7 +354,8 @@ const deleteAsset = async (id, tenantId, userId, userRoleId) => {
     'DELETE',
     'Asset',
     parseInt(id),
-    { name: asset.name }
+    { name: asset.name },
+    null
   );
 };
 
@@ -265,15 +387,32 @@ const addValueHistory = async (id, data, tenantId, userId, userRoleId) => {
   });
   const historyId = lastHistory ? lastHistory.id + 1 : 1;
 
+  const resolvedValueAmount =
+    data.valueAmount !== undefined && data.valueAmount !== null && data.valueAmount !== ''
+      ? data.valueAmount
+      : data.currentValue;
+
+  const resolvedValueDate = data.valueDate || data.recordedAt;
+
+  if (
+    resolvedValueAmount === undefined ||
+    resolvedValueAmount === null ||
+    resolvedValueAmount === ''
+  ) {
+    throw new Error('valueAmount/currentValue is required');
+  }
+
+  if (!resolvedValueDate) {
+    throw new Error('valueDate/recordedAt is required');
+  }
+
   const historyEntry = await prisma.assetValueHistory.create({
     data: {
       id: historyId,
       tenantId: parseInt(tenantId),
       assetId: parseInt(id),
-      valueDate: new Date(data.valueDate),
-      valueAmount: parseFloat(data.valueAmount),
-      source: data.source || null,
-      notes: data.notes || null,
+      valueDate: new Date(resolvedValueDate),
+      valueAmount: parseFloat(resolvedValueAmount),
     },
   });
 
@@ -283,7 +422,11 @@ const addValueHistory = async (id, data, tenantId, userId, userRoleId) => {
     'UPDATE',
     'Asset',
     parseInt(id),
-    { action: 'Value History Added', valueAmount: data.valueAmount }
+    null,
+    {
+      action: 'Value History Added',
+      valueAmount: parseFloat(resolvedValueAmount),
+    }
   );
 
   return historyEntry;

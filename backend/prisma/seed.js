@@ -66,6 +66,24 @@ async function main() {
     });
   }
 
+  // Assign STANDARD_USER permissions:
+  // - Assets: VIEW, CREATE, UPDATE, DELETE (1-4)
+  // - Liabilities: VIEW, CREATE, UPDATE, DELETE (5-8)
+  // - Reports: VIEW_REPORTS (13)
+  const standardUserPermissionIds = [1, 2, 3, 4, 5, 6, 7, 8, 13];
+
+  for (const permId of standardUserPermissionIds) {
+    await prisma.rolePermission.upsert({
+      where: { id: 100 + permId },
+      update: {},
+      create: {
+        id: 100 + permId,
+        roleId: standardUserRole.id,
+        permissionId: permId,
+      },
+    });
+  }
+
   // Create Asset Types
   const assetTypes = [
     { id: 1, name: 'Real Estate' },
