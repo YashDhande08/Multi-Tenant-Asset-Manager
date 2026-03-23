@@ -6,21 +6,29 @@ import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
 import { useAuth } from '../hooks/useAuth';
 import userService from '../services/user.service';
+import adminService from '../services/admin.service';
 
 const Users = () => {
   const { user } = useAuth();
+  ///Stores the list of users.
   const [users, setUsers] = useState([]);
+  ///Stores the loading state when the users are fetched.
   const [loading, setLoading] = useState(true);
+  ///Stores the modal open state Controls invite/edit modal visibility.
   const [isModalOpen, setIsModalOpen] = useState(false);
+  ///Stores the editing user state.
   const [editingUser, setEditingUser] = useState(null);
+  ///Stores the form data.
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
     roleId: '2',
     isActive: true,
   });
+  ///Stores the error state.
   const [error, setError] = useState('');
+  ///Stores the invite link state.
+  const [inviteLink, setInviteLink] = useState('');
 
   useEffect(() => {
     if (user?.roleId === 1) {
@@ -41,31 +49,36 @@ const Users = () => {
     }
   };
 
+  ///This function is used to add a new user.
+
   const handleAdd = () => {
     setEditingUser(null);
     setFormData({
       name: '',
       email: '',
-      password: '',
       roleId: '2',
       isActive: true,
     });
     setIsModalOpen(true);
     setError('');
+    setInviteLink('');
   };
 
+  ///This fills form with user data.
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
       name: user.name || '',
       email: user.email,
-      password: '',
       roleId: user.roleId?.toString() || '2',
       isActive: user.isActive,
     });
     setIsModalOpen(true);
     setError('');
+    setInviteLink('');
   };
+
+  ///This function is used to delete a user.
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -79,21 +92,32 @@ const Users = () => {
     }
   };
 
+  ///This function is used to submit the form.
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setError('');
+      setInviteLink('');
+      ///If the user is being edited, update the user.
       if (editingUser) {
         await userService.updateUser(editingUser.id, formData);
-      } else {
-        if (!formData.password) {
-          setError('Password is required for new users');
-          return;
-        }
-        await userService.createUser(formData);
       }
-      setIsModalOpen(false);
-      fetchUsers();
+      ///If the user is not being edited, invite the user.
+       else {
+        const response = await adminService.inviteUser({
+          email: formData.email,
+          roleId: parseInt(formData.roleId, 10),
+        });
+        setInviteLink(response.data?.inviteUrl || '');
+      }
+      if (editingUser) {
+        setIsModalOpen(false);
+        fetchUsers();
+      } else {
+        // Keep modal open so admin can copy invite link
+        fetchUsers();
+      }
     } catch (error) {
       console.error('Error saving user:', error);
       setError(error.message || 'Failed to save user');
@@ -238,14 +262,15 @@ const Users = () => {
               disabled={!!editingUser}
             />
 
-            <Input
-              label={editingUser ? 'New Password (leave blank to keep current)' : 'Password'}
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required={!editingUser}
-            />
+            {editingUser && (
+              <Input
+                label="New Password (leave blank to keep current)"
+                type="password"
+                name="password"
+                value={formData.password || ''}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -258,9 +283,33 @@ const Users = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="1">Tenant Admin</option>
-                <option value="2">Standard User</option>
+                <option value="2">Standard User (Assets + Liabilities)</option>
+                <option value="3">Standard User (Assets only)</option>
+                <option value="4">Standard User (Liabilities only)</option>
               </select>
             </div>
+
+            {!editingUser && inviteLink && (
+              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md text-sm">
+                <div className="font-medium mb-1">Invite link generated</div>
+                <div className="break-all">{inviteLink}</div>
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(inviteLink);
+                      } catch (e) {
+                        // ignore clipboard errors
+                      }
+                    }}
+                  >
+                    Copy link
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center">
               <input
@@ -278,7 +327,7 @@ const Users = () => {
 
             <div className="flex space-x-3 pt-4">
               <Button type="submit" className="flex-1">
-                {editingUser ? 'Update User' : 'Create User'}
+                {editingUser ? 'Update User' : 'Send Invite'}
               </Button>
               <Button
                 type="button"
@@ -287,6 +336,7 @@ const Users = () => {
                   setIsModalOpen(false);
                   setEditingUser(null);
                   setError('');
+                  setInviteLink('');
                 }}
                 className="flex-1"
               >

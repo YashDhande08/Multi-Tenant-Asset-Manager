@@ -14,6 +14,9 @@ const SUPPORTED_ASSET_TYPES = ['Real Estate', 'Stocks', 'Crypto', 'Cash'];
  * This keeps the database schema using AssetType,
  * while allowing the API/FR layer to work with a simple "type" enum.
  */
+
+
+/// Convert asset type name → assetTypeId
 const resolveAssetTypeId = async ({ assetTypeId, type }) => {
   if (assetTypeId !== undefined && assetTypeId !== null && assetTypeId !== '') {
     return parseInt(assetTypeId);
@@ -228,7 +231,7 @@ const createAsset = async (data, tenantId, userId) => {
     }
   );
 
-  // Attach FR-aligned fields in response
+  // Attach FR-aligned fields in response and Gets the latest value history entry.
   const latestHistory =
     asset.valueHistory && asset.valueHistory.length > 0
       ? asset.valueHistory[0]

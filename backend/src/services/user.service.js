@@ -1,6 +1,31 @@
 const prisma = require('../config/database');
-const { NotFoundError, ForbiddenError } = require('../constants/errors');
+const { NotFoundError, ForbiddenError, BadRequestError } = require('../constants/errors');
 const { hashPassword } = require('../utils/password.util');
+
+const ROLE_ID_TO_NAME = {
+  1: 'Tenant Admin',
+  2: 'Standard User',
+  3: 'Assets Only User',
+  4: 'Liabilities Only User',
+};
+
+const ensureRoleExists = async (roleId) => {
+  const parsedRoleId = parseInt(roleId, 10);
+  if (!ROLE_ID_TO_NAME[parsedRoleId]) {
+    throw new BadRequestError('Invalid roleId');
+  }
+
+  const role = await prisma.role.findUnique({ where: { id: parsedRoleId } });
+  if (role) return role;
+
+  // Create the role if it doesn't exist yet (fresh DB / seed not run)
+  return await prisma.role.create({
+    data: {
+      id: parsedRoleId,
+      name: ROLE_ID_TO_NAME[parsedRoleId],
+    },
+  });
+};
 
 /**
  * Get all users in a tenant
@@ -110,17 +135,30 @@ const createUser = async (data, tenantId, creatorId) => {
     isActive = true,
   } = data;
 
-  // Check if user already exists in this tenant
-  const existingUser = await prisma.user.findFirst({
+  const normalizedEmail = email.toLowerCase();
+  const resolvedRoleId = roleId ? parseInt(roleId, 10) : 2;
+
+  // Ensure the referenced role exists to avoid FK constraint errors
+  await ensureRoleExists(resolvedRoleId);
+
+  // If a previously soft-deleted user exists with the same email+tenant,
+  // it will still block creation due to the DB unique constraint.
+  // To support "delete then re-create with same email", we purge the soft-deleted row.
+  const existingAny = await prisma.user.findFirst({
     where: {
-      email,
+      email: normalizedEmail,
       tenantId: parseInt(tenantId),
-      isDeleted: false,
     },
   });
 
-  if (existingUser) {
+  if (existingAny && existingAny.isDeleted === false) {
     throw new Error('User already exists in this organization');
+  }
+
+  if (existingAny && existingAny.isDeleted === true) {
+    await prisma.user.delete({
+      where: { id: existingAny.id },
+    });
   }
 
   // Generate unique user ID
@@ -136,10 +174,10 @@ const createUser = async (data, tenantId, creatorId) => {
       id: userId,
       tenantId: parseInt(tenantId),
       name: name || null,
-      email,
+      email: normalizedEmail,
       passwordHash,
       isActive,
-      roleId: roleId ? parseInt(roleId) : 2, // Default to Standard User (role ID 2)
+      roleId: resolvedRoleId, // Default to Standard User (role ID 2)
       isDeleted: false,
     },
     include: {

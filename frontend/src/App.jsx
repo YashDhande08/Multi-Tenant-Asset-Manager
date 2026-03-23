@@ -13,6 +13,7 @@ import Liabilities from './pages/Liabilities';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Users from './pages/Users';
+import AcceptInvite from './pages/AcceptInvite';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/invite/:token" element={<AcceptInvite />} />
               <Route
                 path="/dashboard"
                 element={

@@ -115,7 +115,7 @@ const register = async (data) => {
     },
   };
 };
-
+/// login user by applying some condition
 const login = async (email, password) => {
   const user = await prisma.user.findFirst({
     where: {
@@ -142,7 +142,7 @@ const login = async (email, password) => {
   if (!isPasswordValid) {
     throw new UnauthorizedError('Invalid credentials');
   }
-
+/// generate token and refresh token
   const tokenPayload = {
     id: user.id,
     email: user.email,
@@ -210,7 +210,7 @@ const refreshAccessToken = async (refreshToken) => {
       throw new UnauthorizedError('Invalid refresh token');
     }
 
-    // Verify tenant still exists and user still belongs to it
+    // Verify tenant still exists and user still belongs to it If the tenant was deleted but the refresh token still exists
     const tenant = await prisma.tenant.findUnique({
       where: { id: user.tenantId },
     });

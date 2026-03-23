@@ -1,6 +1,9 @@
 import React from 'react';
 import Card from '../common/Card';
 
+
+///This converts the date into a readable format.
+
 const RecentActivity = ({ activities }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -54,12 +57,16 @@ const RecentActivity = ({ activities }) => {
   return (
     <Card title="Recent Activity">
       <div className="space-y-3">
+
+        /// This shows the recent activity.
+        ///This loops through the activity array and displays each activity.
         {activities.map((activity) => (
           <div
             key={activity.id}
             className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-lg ${getActionColor(activity.action)}`}>
+              /// This shows the action icon.
               {getActionIcon(activity.action)}
             </div>
             <div className="flex-1 min-w-0">
@@ -69,6 +76,8 @@ const RecentActivity = ({ activities }) => {
                 </p>
                 <p className="text-xs text-gray-500">{formatDate(activity.createdAt)}</p>
               </div>
+              /// This shows the action and entity type.
+              // action means create, update, and enttiy means asset, liability, etc.
               <p className="text-sm text-gray-600 mt-1">
                 <span className="font-medium">{activity.action}</span> {activity.entityType}
                 {activity.entityId && ` #${activity.entityId}`}

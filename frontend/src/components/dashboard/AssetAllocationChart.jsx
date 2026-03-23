@@ -14,7 +14,7 @@ const AssetAllocationChart = ({ assetAllocation }) => {
       </Card>
     );
   }
-
+/// convert  object  to array of objects
   const data = Object.entries(assetAllocation).map(([name, value]) => ({
     name,
     value: parseFloat(value),
@@ -29,7 +29,7 @@ const AssetAllocationChart = ({ assetAllocation }) => {
       maximumFractionDigits: 0,
     }).format(value);
   };
-
+/// detail tooltip when hover on the chart
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const data = payload[0];

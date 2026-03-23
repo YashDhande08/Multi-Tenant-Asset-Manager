@@ -15,8 +15,14 @@ router.post(
   [
     body('email').isEmail().normalizeEmail(),
     body('roleId')
-      .isInt({ min: 1 })
-      .withMessage('roleId must be a valid role identifier'),
+      .isInt()
+      .custom((value) => {
+        const id = parseInt(value, 10);
+        if (![1, 2, 3, 4].includes(id)) {
+          throw new Error('roleId must be one of: 1 (Admin), 2 (Standard), 3 (Assets only), 4 (Liabilities only)');
+        }
+        return true;
+      }),
     validate,
   ],
   adminController.inviteUser

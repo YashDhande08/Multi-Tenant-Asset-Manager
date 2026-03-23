@@ -1,19 +1,16 @@
 const crypto = require('crypto');
 const prisma = require('../config/database');
 const { hashPassword } = require('../utils/password.util');
-const {
-  BadRequestError,
-  NotFoundError,
-} = require('../constants/errors');
-const {
-  generateToken,
-  generateRefreshToken,
-} = require('../utils/jwt.util');
+const {BadRequestError,NotFoundError} = require('../constants/errors');
+const { generateToken,generateRefreshToken } = require('../utils/jwt.util');
+const { FRONTEND_URL } = require('../config/env');
+const { sendInviteEmail } = require('./email.service');
 
 // 7 days in milliseconds
 const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
-const ALLOWED_ROLE_IDS = [1, 2]; // 1: Tenant Admin, 2: Standard User
+// 1: Tenant Admin, 2: Standard User, 3: Assets Only User, 4: Liabilities Only User
+const ALLOWED_ROLE_IDS = [1, 2, 3, 4];
 
 const createInvite = async (email, roleId, tenantId, inviterId) => {
   const normalizedEmail = email.toLowerCase();
@@ -70,7 +67,15 @@ const createInvite = async (email, roleId, tenantId, inviterId) => {
     },
   });
 
-  const inviteUrl = `https://app-domain.com/invite/${invite.token}`;
+  const baseUrl = (FRONTEND_URL || '').replace(/\/+$/, '');
+  const inviteUrl = `${baseUrl}/invite/${invite.token}`;
+
+  // Send email with invite link (if SMTP configured)
+  const emailResult = await sendInviteEmail({
+    to: invite.email,
+    inviteUrl,
+    tenantName: invite.tenant?.name,
+  });
 
   return {
     id: invite.id,
@@ -81,6 +86,8 @@ const createInvite = async (email, roleId, tenantId, inviterId) => {
     expiresAt: invite.expiresAt,
     token: invite.token,
     inviteUrl,
+    emailSent: !emailResult?.skipped,
+    emailSkipped: Boolean(emailResult?.skipped),
   };
 };
 
@@ -102,19 +109,26 @@ const acceptInvite = async ({ token, password, name }) => {
     throw new NotFoundError('Invalid or expired invitation token');
   }
 
-  // Check again that user does not already exist
-  const existingUser = await prisma.user.findFirst({
+  // Check if user already exists in this tenant.
+  // Note: a soft-deleted user still blocks creation due to the DB unique constraint,
+  // so we purge it to allow accept-invite to proceed.
+  const existingAny = await prisma.user.findFirst({
     where: {
       email: invite.email,
       tenantId: invite.tenantId,
-      isDeleted: false,
     },
   });
 
-  if (existingUser) {
+  if (existingAny && existingAny.isDeleted === false) {
     // Clean up invite to prevent reuse
     await prisma.invite.delete({ where: { id: invite.id } });
     throw new BadRequestError('User already exists for this invitation');
+  }
+
+  if (existingAny && existingAny.isDeleted === true) {
+    await prisma.user.delete({
+      where: { id: existingAny.id },
+    });
   }
 
   // Generate unique user ID

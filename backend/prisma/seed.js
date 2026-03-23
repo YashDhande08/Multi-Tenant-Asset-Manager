@@ -25,7 +25,30 @@ async function main() {
     },
   });
 
-  console.log('Roles created:', { adminRole, standardUserRole });
+  const assetOnlyRole = await prisma.role.upsert({
+    where: { id: 3 },
+    update: {},
+    create: {
+      id: 3,
+      name: 'Assets Only User',
+    },
+  });
+
+  const liabilityOnlyRole = await prisma.role.upsert({
+    where: { id: 4 },
+    update: {},
+    create: {
+      id: 4,
+      name: 'Liabilities Only User',
+    },
+  });
+
+  console.log('Roles created:', {
+    adminRole,
+    standardUserRole,
+    assetOnlyRole,
+    liabilityOnlyRole,
+  });
 
   // Create Permissions
   const permissions = [
@@ -79,6 +102,40 @@ async function main() {
       create: {
         id: 100 + permId,
         roleId: standardUserRole.id,
+        permissionId: permId,
+      },
+    });
+  }
+
+  // Assign ASSET_ONLY_USER permissions:
+  // - Assets: VIEW, CREATE, UPDATE, DELETE (1-4)
+  // - Reports: VIEW_REPORTS (13)
+  const assetOnlyPermissionIds = [1, 2, 3, 4, 13];
+
+  for (const permId of assetOnlyPermissionIds) {
+    await prisma.rolePermission.upsert({
+      where: { id: 200 + permId },
+      update: {},
+      create: {
+        id: 200 + permId,
+        roleId: assetOnlyRole.id,
+        permissionId: permId,
+      },
+    });
+  }
+
+  // Assign LIABILITY_ONLY_USER permissions:
+  // - Liabilities: VIEW, CREATE, UPDATE, DELETE (5-8)
+  // - Reports: VIEW_REPORTS (13)
+  const liabilityOnlyPermissionIds = [5, 6, 7, 8, 13];
+
+  for (const permId of liabilityOnlyPermissionIds) {
+    await prisma.rolePermission.upsert({
+      where: { id: 300 + permId },
+      update: {},
+      create: {
+        id: 300 + permId,
+        roleId: liabilityOnlyRole.id,
         permissionId: permId,
       },
     });
