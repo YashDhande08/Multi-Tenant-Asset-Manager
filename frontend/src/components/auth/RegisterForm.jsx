@@ -7,19 +7,14 @@ import Loader from '../common/Loader';
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
-    // User fields
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    
-    // Tenant fields
     tenantName: '',
     tenantEmail: '',
     phoneNo: '',
     baseCurrency: 'INR',
-    
-    // Address fields
     line1: '',
     line2: '',
     city: '',
@@ -27,7 +22,7 @@ const RegisterForm = () => {
     country: 'India',
     postalCode: '',
   });
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -42,38 +37,38 @@ const RegisterForm = () => {
       setError('Please fill in all required fields');
       return false;
     }
-    
+
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       return false;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return false;
     }
-    
+
     if (!formData.tenantName) {
       setError('Organization name is required');
       return false;
     }
-    
+
     if (!formData.line1 || !formData.city || !formData.state) {
       setError('Please fill in address details');
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -87,18 +82,22 @@ const RegisterForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mt-8 space-y-6">
-      <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
-      
+    <form onSubmit={handleSubmit} className="w-full space-y-8">
+      <header>
+        <h1 className="auth-form-title">Create your workspace</h1>
+        <p className="auth-form-subtitle">
+          Register your organization and administrator account. You can invite team members after setup.
+        </p>
+      </header>
+
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="auth-alert" role="alert">
           {error}
         </div>
       )}
 
-      {/* User Information Section */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">User Information</h3>
+      <div className="auth-form-section">
+        <h2 className="auth-form-section-title">Account</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Full Name"
@@ -107,6 +106,7 @@ const RegisterForm = () => {
             onChange={handleChange}
             placeholder="John Doe"
             required
+            className="mb-0"
           />
 
           <Input
@@ -117,6 +117,7 @@ const RegisterForm = () => {
             onChange={handleChange}
             placeholder="your.email@example.com"
             required
+            className="mb-0"
           />
 
           <Input
@@ -127,6 +128,7 @@ const RegisterForm = () => {
             onChange={handleChange}
             placeholder="Minimum 6 characters"
             required
+            className="mb-0"
           />
 
           <Input
@@ -137,21 +139,22 @@ const RegisterForm = () => {
             onChange={handleChange}
             placeholder="Re-enter password"
             required
+            className="mb-0"
           />
         </div>
       </div>
 
-      {/* Organization Information Section */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">Organization Information</h3>
+      <div className="auth-form-section">
+        <h2 className="auth-form-section-title">Organization</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Organization Name"
             name="tenantName"
             value={formData.tenantName}
             onChange={handleChange}
-            placeholder="Your Company/Organization"
+            placeholder="Your company or team"
             required
+            className="mb-0"
           />
 
           <Input
@@ -161,6 +164,7 @@ const RegisterForm = () => {
             value={formData.tenantEmail}
             onChange={handleChange}
             placeholder="org@example.com"
+            className="mb-0"
           />
 
           <Input
@@ -169,30 +173,28 @@ const RegisterForm = () => {
             value={formData.phoneNo}
             onChange={handleChange}
             placeholder="+91 1234567890"
+            className="mb-0"
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Base Currency
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Base Currency</label>
             <select
               name="baseCurrency"
               value={formData.baseCurrency}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="auth-select theme-transition"
             >
-              <option value="INR">INR - Indian Rupee</option>
-              <option value="USD">USD - US Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="GBP">GBP - British Pound</option>
+              <option value="INR">INR — Indian Rupee</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Address Information Section */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">Address Information</h3>
+      <div className="auth-form-section">
+        <h2 className="auth-form-section-title">Address</h2>
         <div className="grid grid-cols-1 gap-4">
           <Input
             label="Address Line 1"
@@ -201,6 +203,7 @@ const RegisterForm = () => {
             onChange={handleChange}
             placeholder="Street address"
             required
+            className="mb-0"
           />
 
           <Input
@@ -209,6 +212,7 @@ const RegisterForm = () => {
             value={formData.line2}
             onChange={handleChange}
             placeholder="Apartment, suite, etc. (optional)"
+            className="mb-0"
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -219,6 +223,7 @@ const RegisterForm = () => {
               onChange={handleChange}
               placeholder="City"
               required
+              className="mb-0"
             />
 
             <Input
@@ -228,6 +233,7 @@ const RegisterForm = () => {
               onChange={handleChange}
               placeholder="State"
               required
+              className="mb-0"
             />
 
             <Input
@@ -235,19 +241,18 @@ const RegisterForm = () => {
               name="postalCode"
               value={formData.postalCode}
               onChange={handleChange}
-              placeholder="PIN/ZIP Code"
+              placeholder="PIN / ZIP"
+              className="mb-0"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Country
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
             <select
               name="country"
               value={formData.country}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="auth-select theme-transition"
             >
               <option value="India">India</option>
               <option value="United States">United States</option>
@@ -259,9 +264,11 @@ const RegisterForm = () => {
         </div>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? <Loader size="sm" /> : 'Create Account'}
-      </Button>
+      <div className="pt-1">
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? <Loader size="sm" /> : 'Create organization'}
+        </Button>
+      </div>
     </form>
   );
 };

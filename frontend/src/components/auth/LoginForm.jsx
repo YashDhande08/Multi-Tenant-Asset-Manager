@@ -29,37 +29,47 @@ const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-8">
-      <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-      
+    <form onSubmit={handleSubmit} className="w-full space-y-5">
+      <header>
+        <h1 className="auth-form-title">Welcome back</h1>
+        <p className="auth-form-subtitle">
+          Sign in to your workspace to track assets, liabilities, and net worth.
+        </p>
+      </header>
+
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="auth-alert" role="alert">
           {error}
         </div>
       )}
 
-      <Input
-        label="Email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
+      <div className="space-y-4">
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="mb-0"
+        />
 
-      <Input
-        label="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
+        <Input
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="mb-0"
+        />
+      </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading ? <Loader size="sm" /> : 'Login'}
-      </Button>
+      <div className="pt-1">
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? <Loader size="sm" /> : 'Sign in'}
+        </Button>
+      </div>
     </form>
   );
 };
 
 export default LoginForm;
-

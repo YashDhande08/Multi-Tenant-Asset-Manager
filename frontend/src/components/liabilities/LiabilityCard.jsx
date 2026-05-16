@@ -63,10 +63,6 @@ const LiabilityCard = ({ liability, onEdit, onDelete }) => {
         </div>
       )}
 
-      {liability.description && (
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{liability.description}</p>
-      )}
-
       {liability.ownerUser && (
         <p className="text-xs text-gray-500 mb-4">
           Owner: {liability.ownerUser.name || liability.ownerUser.email}

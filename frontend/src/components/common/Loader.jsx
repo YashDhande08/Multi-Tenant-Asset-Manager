@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Loader = ({ size = 'md', className = '' }) => {
+const Loader = ({ size = 'md' }) => {
   const sizes = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
@@ -8,13 +8,16 @@ const Loader = ({ size = 'md', className = '' }) => {
   };
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <div
-        className={`${sizes[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin`}
-      ></div>
-    </div>
+    <div
+      className={`${sizes[size]} rounded-full animate-spin border-4 theme-transition`}
+      style={{
+        borderColor: 'color-mix(in srgb, var(--accent-primary) 35%, transparent)',
+        borderTopColor: 'var(--accent-primary)',
+      }}
+      role="status"
+      aria-label="Loading"
+    />
   );
 };
 
 export default Loader;
-

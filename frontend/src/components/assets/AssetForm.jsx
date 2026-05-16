@@ -4,7 +4,6 @@ import Button from '../common/Button';
 import assetService from '../../services/asset.service';
 
 const AssetForm = ({ asset, onSubmit, onCancel }) => {
-  /// This is the form data for the asset.
   const [formData, setFormData] = useState({
     name: '',
     assetTypeId: '',
@@ -20,8 +19,6 @@ const AssetForm = ({ asset, onSubmit, onCancel }) => {
 
   useEffect(() => {
     fetchAssetTypes();
-    /// This fetches the asset types.
-    /// If the asset exists, it gets the latest value.
     if (asset) {
       const latestValue = asset.valueHistory && asset.valueHistory.length > 0
         ? asset.valueHistory[0]

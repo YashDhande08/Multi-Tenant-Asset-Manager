@@ -34,8 +34,23 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const refreshUser = (profile) => {
+    if (!profile) return;
+    setUser((prev) => {
+      const next = {
+        ...prev,
+        name: profile.name ?? prev?.name,
+        email: profile.email ?? prev?.email,
+        roleId: profile.roleId ?? prev?.roleId,
+        roleName: profile.roleName ?? prev?.roleName,
+      };
+      localStorage.setItem('user', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

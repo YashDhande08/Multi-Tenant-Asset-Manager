@@ -32,7 +32,7 @@ const AssetCard = ({ asset, onEdit, onDelete }) => {
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-1">{asset.name}</h3>
           <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-green-600 bg-green-100">
               {assetTypeName}
             </span>
             {asset.acquisitionDate && (
@@ -50,10 +50,6 @@ const AssetCard = ({ asset, onEdit, onDelete }) => {
           {formatCurrency(currentValue, asset.currency)}
         </p>
       </div>
-
-      {asset.description && (
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{asset.description}</p>
-      )}
 
       {asset.user && (
         <p className="text-xs text-gray-500 mb-4">

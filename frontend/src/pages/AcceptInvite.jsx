@@ -6,7 +6,7 @@ import Button from '../components/common/Button';
 
 const AcceptInvite = () => {
   const navigate = useNavigate();
-  ///Stores the invite token.
+  // Invite token from route params.
   const { token } = useParams();
 
   const inviteToken = useMemo(() => token || '', [token]);
@@ -16,9 +16,9 @@ const AcceptInvite = () => {
     password: '',
     confirmPassword: '',
   });
-  /// while sending API request
+  // Indicates API request progress.
   const [loading, setLoading] = useState(false);
-  ///Error → show validation errors
+  // Stores validation/server error to display.
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -56,8 +56,8 @@ const AcceptInvite = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="min-h-screen flex items-center justify-center theme-transition bg-[var(--background)] px-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-gray-200 p-6 page-content-enter">
         <h1 className="text-2xl font-bold text-gray-900">Accept Invitation</h1>
         <p className="text-gray-600 mt-1">
           Set your password to activate your account.

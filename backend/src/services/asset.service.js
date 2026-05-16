@@ -16,7 +16,7 @@ const SUPPORTED_ASSET_TYPES = ['Real Estate', 'Stocks', 'Crypto', 'Cash'];
  */
 
 
-/// Convert asset type name → assetTypeId
+// Convert asset type name to assetTypeId.
 const resolveAssetTypeId = async ({ assetTypeId, type }) => {
   if (assetTypeId !== undefined && assetTypeId !== null && assetTypeId !== '') {
     return parseInt(assetTypeId);

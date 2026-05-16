@@ -36,7 +36,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     <div className="fixed inset-0 z-9999">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 theme-transition"
+        style={{ backgroundColor: 'var(--backdrop-scrim)' }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -47,14 +48,14 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
           role="dialog"
           aria-modal="true"
           aria-label={title || 'Dialog'}
-          className={`w-full ${sizes[size]} rounded-lg bg-white text-left shadow-2xl ring-1 ring-black/10`}
+          className={`w-full ${sizes[size]} app-card text-left theme-transition`}
         >
           <div className="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">{title}</h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="text-gray-400 hover:text-gray-600 focus:outline-none theme-transition"
               >
                 <span className="sr-only">Close</span>
                 <svg

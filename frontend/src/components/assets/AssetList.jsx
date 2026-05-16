@@ -2,11 +2,7 @@ import React from 'react';
 import AssetCard from './AssetCard';
 import Button from '../common/Button';
 
-/// This shows the asset list. function to add asset,edit asset, delete asset
-
-
 const AssetList = ({ assets, onAdd, onEdit, onDelete }) => {
-  /// This formats numbers as Indian currency.
   const formatCurrency = (amount, currency = 'INR') => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -44,17 +40,16 @@ const AssetList = ({ assets, onAdd, onEdit, onDelete }) => {
     // This displays total assets summary.
     <div className="space-y-6">
       {/* Summary Card */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+      <div className="app-banner-gradient p-6">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-blue-100 text-sm font-medium mb-1">Total Assets Value</p>
+            <p className="text-muted-banner text-sm font-medium mb-1">Total Assets Value</p>
             <p className="text-3xl font-bold">
-              /// This formats the total value as Indian currency.
               {formatCurrency(totalValue, assets[0]?.currency || 'INR')}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-blue-100 text-sm font-medium mb-1">Total Assets</p>
+            <p className="text-muted-banner text-sm font-medium mb-1">Total Assets</p>
             <p className="text-3xl font-bold">{assets.length}</p>
           </div>
         </div>

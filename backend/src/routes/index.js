@@ -9,8 +9,10 @@ const liabilityRoutes = require('./liability.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const reportRoutes = require('./report.routes');
 const adminRoutes = require('./admin.routes');
+const settingsRoutes = require('./settings.routes');
 
 router.use('/auth', authRoutes);
+router.use('/settings', settingsRoutes);
 router.use('/tenants', tenantRoutes);
 router.use('/users', userRoutes);
 router.use('/assets', assetRoutes);

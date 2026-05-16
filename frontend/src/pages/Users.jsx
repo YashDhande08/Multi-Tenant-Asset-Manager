@@ -10,24 +10,24 @@ import adminService from '../services/admin.service';
 
 const Users = () => {
   const { user } = useAuth();
-  ///Stores the list of users.
+  // Stores the list of users.
   const [users, setUsers] = useState([]);
-  ///Stores the loading state when the users are fetched.
+  // Stores loading state while users are fetched.
   const [loading, setLoading] = useState(true);
-  ///Stores the modal open state Controls invite/edit modal visibility.
+  // Controls invite/edit modal visibility.
   const [isModalOpen, setIsModalOpen] = useState(false);
-  ///Stores the editing user state.
+  // Stores the currently edited user.
   const [editingUser, setEditingUser] = useState(null);
-  ///Stores the form data.
+  // Stores invite/edit form data.
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     roleId: '2',
     isActive: true,
   });
-  ///Stores the error state.
+  // Stores request or validation errors.
   const [error, setError] = useState('');
-  ///Stores the invite link state.
+  // Stores generated invite link for copy/share.
   const [inviteLink, setInviteLink] = useState('');
 
   useEffect(() => {
@@ -49,8 +49,6 @@ const Users = () => {
     }
   };
 
-  ///This function is used to add a new user.
-
   const handleAdd = () => {
     setEditingUser(null);
     setFormData({
@@ -64,7 +62,7 @@ const Users = () => {
     setInviteLink('');
   };
 
-  ///This fills form with user data.
+  // Fill form with existing user data for edit mode.
   const handleEdit = (user) => {
     setEditingUser(user);
     setFormData({
@@ -78,8 +76,6 @@ const Users = () => {
     setInviteLink('');
   };
 
-  ///This function is used to delete a user.
-
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
@@ -92,19 +88,17 @@ const Users = () => {
     }
   };
 
-  ///This function is used to submit the form.
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setError('');
       setInviteLink('');
-      ///If the user is being edited, update the user.
+      // If editing, update the existing user.
       if (editingUser) {
         await userService.updateUser(editingUser.id, formData);
       }
-      ///If the user is not being edited, invite the user.
-       else {
+      // Otherwise, send an invite for a new user.
+      else {
         const response = await adminService.inviteUser({
           email: formData.email,
           roleId: parseInt(formData.roleId, 10),
@@ -193,7 +187,7 @@ const Users = () => {
                     <div className="text-sm text-gray-900">{u.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-gray-900 bg-gray-100">
                       {u.role?.name || 'Standard User'}
                     </span>
                   </td>

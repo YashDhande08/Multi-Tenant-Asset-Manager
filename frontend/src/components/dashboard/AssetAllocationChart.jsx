@@ -1,20 +1,32 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import Card from '../common/Card';
+import { useChartTheme } from '../../hooks/useChartTheme';
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
+const COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-6)',
+  'var(--chart-7)',
+  'var(--chart-8)',
+];
 
 const AssetAllocationChart = ({ assetAllocation }) => {
+  const { axis, tooltipBg, tooltipBorder, tooltipShadow } = useChartTheme();
+
   if (!assetAllocation || Object.keys(assetAllocation).length === 0) {
     return (
       <Card title="Asset Allocation">
-        <div className="h-64 flex items-center justify-center">
+        <div className="h-64 flex items-center justify-center chart-mount-enter">
           <p className="text-gray-500">No asset data available</p>
         </div>
       </Card>
     );
   }
-/// convert  object  to array of objects
+
   const data = Object.entries(assetAllocation).map(([name, value]) => ({
     name,
     value: parseFloat(value),
@@ -29,16 +41,25 @@ const AssetAllocationChart = ({ assetAllocation }) => {
       maximumFractionDigits: 0,
     }).format(value);
   };
-/// detail tooltip when hover on the chart
+
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
-      const data = payload[0];
-      const percentage = ((data.value / total) * 100).toFixed(1);
+      const row = payload[0];
+      const percentage = ((row.value / total) * 100).toFixed(1);
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-900">{data.name}</p>
-          <p className="text-blue-600 font-medium">{formatCurrency(data.value)}</p>
-          <p className="text-sm text-gray-500">{percentage}% of total</p>
+        <div
+          className="theme-chart-tooltip theme-transition"
+          style={{
+            backgroundColor: tooltipBg,
+            borderColor: tooltipBorder,
+            boxShadow: tooltipShadow,
+          }}
+        >
+          <p className="font-semibold text-gray-900">{row.name}</p>
+          <p className="font-medium mt-1" style={{ color: 'var(--accent)' }}>
+            {formatCurrency(row.value)}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">{percentage}% of total</p>
         </div>
       );
     }
@@ -47,7 +68,7 @@ const AssetAllocationChart = ({ assetAllocation }) => {
 
   return (
     <Card title="Asset Allocation">
-      <div className="h-80">
+      <div className="h-80 chart-mount-enter">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -68,7 +89,8 @@ const AssetAllocationChart = ({ assetAllocation }) => {
             <Legend
               verticalAlign="bottom"
               height={36}
-              formatter={(value) => `${value} - ${formatCurrency(data.find(d => d.name === value)?.value || 0)}`}
+              wrapperStyle={{ color: axis }}
+              formatter={(value) => `${value} - ${formatCurrency(data.find((d) => d.name === value)?.value || 0)}`}
             />
           </PieChart>
         </ResponsiveContainer>

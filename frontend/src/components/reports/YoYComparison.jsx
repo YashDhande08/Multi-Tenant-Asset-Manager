@@ -26,7 +26,7 @@ const YoYComparison = ({ data }) => {
     <Card title="Year-over-Year Comparison">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Current Year */}
-        <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+        <div className=" bg-gray-50 rounded-lg p-6 border border-blue-200">
           <h3 className="text-lg font-semibold text-blue-900 mb-4">
             {currentYear.year}
           </h3>

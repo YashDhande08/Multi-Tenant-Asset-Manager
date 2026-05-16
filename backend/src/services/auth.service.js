@@ -115,7 +115,7 @@ const register = async (data) => {
     },
   };
 };
-/// login user by applying some condition
+// Log in user after credential validation.
 const login = async (email, password) => {
   const user = await prisma.user.findFirst({
     where: {
@@ -142,7 +142,7 @@ const login = async (email, password) => {
   if (!isPasswordValid) {
     throw new UnauthorizedError('Invalid credentials');
   }
-/// generate token and refresh token
+  // Generate access and refresh tokens.
   const tokenPayload = {
     id: user.id,
     email: user.email,
@@ -188,6 +188,9 @@ const getProfile = async (userId) => {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone,
+    profilePhotoUrl: user.profilePhotoUrl,
+    preferences: user.preferences || {},
     roleId: user.roleId,
     roleName: user.role?.name,
     tenantId: user.tenantId,

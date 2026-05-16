@@ -1,19 +1,26 @@
 import React from 'react';
+import { useRole } from '../hooks/useRole';
+import AdminSettings from '../components/settings/admin/AdminSettings';
+import UserSettings from '../components/settings/user/UserSettings';
+import Loader from '../components/common/Loader';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import Card from '../components/common/Card';
+import { useAuth } from '../hooks/useAuth';
 
 const Settings = () => {
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
-        <Card title="Account Settings">
-          <p className="text-gray-600">Settings functionality coming soon...</p>
-        </Card>
-      </div>
-    </DashboardLayout>
-  );
+  const { loading } = useAuth();
+  const { isAdmin } = useRole();
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center py-20">
+          <Loader size="lg" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return isAdmin ? <AdminSettings /> : <UserSettings />;
 };
 
 export default Settings;
-
